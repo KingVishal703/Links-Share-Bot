@@ -51,7 +51,7 @@ async def start_command(client: Bot, message: Message):
             return await message.reply_text(
                 subscription_message,
                 reply_markup=subscription_buttons,
-                parse_mode="HTML"
+                parse_mode="html"
             )
     except Exception as e:
         print("Error during force-sub check:", e)
