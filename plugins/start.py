@@ -143,11 +143,11 @@ async def start_command(client: Bot, message: Message):
                 await wait_msg.delete()
 
                 # 🖼️ Image + Caption + Button
-                image_url = "https://telegra.ph/file/3df22c7b2f3e26c3c20b2.jpg"
+                image_url = "https://telegra.ph/HgBotz-11-12-2"
                 caption = (
                     "🖤─────🔥💫🔥──────🖤\n"
-                    "<b>✨ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ᴀᴄᴄᴇss ʟɪɴᴋ ✨</b>\n\n"
-                    "<blockquote expandable>⚡ Click the button below to join the special channel!</blockquote>\n"
+                    "<b>✨ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ ✨</b>\n\n"
+                    "<blockquote expandable>⚡ Click the button below to join the anime channel!</blockquote>\n"
                     "🖤─────🔥💫🔥──────🖤"
                 )
 
