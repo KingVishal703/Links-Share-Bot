@@ -42,6 +42,20 @@ async def start_command(client: Bot, message: Message):
             )
             
     await add_user(user_id)
+    # --- Force Subscribe Check Integration ---
+from plugins.fsub import check_subscription_status
+
+try:
+    is_subscribed, subscription_message, subscription_buttons = await check_subscription_status(client, user_id)
+    if not is_subscribed:
+        return await message.reply_text(
+            subscription_message,
+            reply_markup=subscription_buttons,
+            parse_mode="HTML"
+        )
+except Exception as e:
+    print("Error during force-sub check:", e)
+# --- End Force Subscribe Integration ---
 
    # ✅ Check Force Subscription
     #if not await is_subscribed(client, user_id):
