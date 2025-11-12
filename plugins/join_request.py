@@ -30,7 +30,7 @@ async def handle_join_request(client: Client, join_request: ChatJoinRequest):
             f"User: {user.first_name} (ID: <code>{user.id}</code>)\n"
             f"Approve manually in the channel settings."
         )
-        await client.send_message(OWNER_ID, text, parse_mode="html")
+        await client.send_message(OWNER_ID, text, parse_mode="HTML")
     except Exception as e:
         print("Failed to notify owner:", e)
 
@@ -94,6 +94,6 @@ async def list_jrfsub_channels(client, message: Message):
         msg = "<b>📋 Join Request Force-Subscribe Channels:</b>\n\n"
         for ch in channels:
             msg += f"• <code>{ch['channel_id']}</code>\n"
-        await message.reply_text(msg, parse_mode="html")
+        await message.reply_text(msg, parse_mode="HTML")
     except Exception as e:
         await message.reply_text(f"❌ Error fetching list: {e}")
