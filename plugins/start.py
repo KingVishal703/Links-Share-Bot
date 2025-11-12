@@ -124,7 +124,7 @@ async def start_command(client: Bot, message: Message):
                         is_request_link = is_request
                         await save_invite_link(channel_id, invite_link, is_request_link)
                 else:
-                    # Create new link
+                    # ✨ Create new link
                     invite = await client.create_chat_invite_link(
                         chat_id=channel_id,
                         expire_date=current_time + timedelta(minutes=10),
@@ -134,31 +134,38 @@ async def start_command(client: Bot, message: Message):
                     is_request_link = is_request
                     await save_invite_link(channel_id, invite_link, is_request_link)
 
-            button_text = "• ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ •" if is_request_link else "• ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ •"
-            button = InlineKeyboardMarkup([[InlineKeyboardButton(button_text, url=invite_link)]])
+                # 🎯 Button Setup
+                button_text = "💫 ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ 💫" if is_request_link else "🔥 ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ 🔥"
+                button = InlineKeyboardMarkup([[InlineKeyboardButton(button_text, url=invite_link)]])
 
-            wait_msg = await message.reply_text(
-                "⏳",
-                parse_mode=ParseMode.HTML
-            )
-            
-            await wait_msg.delete()
-            
-            await message.reply_text(
-                "<b><blockquote expandable>ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ! ᴄʟɪᴄᴋ ʙᴇʟᴏᴡ ᴛᴏ ᴘʀᴏᴄᴇᴇᴅ</b>",
-                reply_markup=button,
-                parse_mode=ParseMode.HTML
-            )
+                # ⏳ Small waiting symbol
+                wait_msg = await message.reply_text("⏳")
+                await wait_msg.delete()
 
-            note_msg = await message.reply_text(
-                "<u><b>Note: If the link is expired, please click the post link again to get a new one.</b></u>",
-                parse_mode=ParseMode.HTML
-            )
+                # 🖼️ Image + Caption + Button
+                image_url = "https://telegra.ph/file/3df22c7b2f3e26c3c20b2.jpg"
+                caption = (
+                    "🖤─────🔥💫🔥──────🖤\n"
+                    "<b>✨ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ᴀᴄᴄᴇss ʟɪɴᴋ ✨</b>\n\n"
+                    "<blockquote expandable>⚡ Click the button below to join the special channel!</blockquote>\n"
+                    "🖤─────🔥💫🔥──────🖤"
+                )
 
-            # Auto-delete the note message after 5 minutes
-            asyncio.create_task(delete_after_delay(note_msg, 300))
+                await message.reply_photo(
+                    photo=image_url,
+                    caption=caption,
+                    reply_markup=button,
+                    parse_mode=ParseMode.HTML
+                )
 
-            asyncio.create_task(revoke_invite_after_5_minutes(client, channel_id, invite_link, is_request_link))
+                # 🕐 Note message (auto delete)
+                note_msg = await message.reply_text(
+                    "⚠️ <u><b>Note:</b> If the link expires, click again to generate a new one!</u>",
+                    parse_mode=ParseMode.HTML
+                )
+
+                asyncio.create_task(delete_after_delay(note_msg, 300))
+                asyncio.create_task(revoke_invite_after_5_minutes(client, channel_id, invite_link, is_request_link))
 
         except Exception as e:
             await message.reply_text(
