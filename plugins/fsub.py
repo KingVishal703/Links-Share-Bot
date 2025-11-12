@@ -114,6 +114,6 @@ async def list_fsub_command(client, message: Message):
         msg = "<b>📋 Force Subscribe Channels:</b>\n\n"
         for ch_id in channels:
             msg += f"• <code>{ch_id}</code>\n"
-        await message.reply_text(msg, parse_mode="html")
+        await message.reply_text(msg, parse_mode="HTML")
     except Exception as e:
         await message.reply_text(f"❌ Error fetching list: {e}")
