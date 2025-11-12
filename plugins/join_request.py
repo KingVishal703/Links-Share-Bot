@@ -94,6 +94,6 @@ async def list_jrfsub_channels(client, message: Message):
         msg = "<b>📋 Join Request Force-Subscribe Channels:</b>\n\n"
         for ch in channels:
             msg += f"• <code>{ch['channel_id']}</code>\n"
-        await message.reply_text(msg, parse_mode="HTML")
+        await message.reply_text(msg, parse_mode="html")
     except Exception as e:
         await message.reply_text(f"❌ Error fetching list: {e}")
