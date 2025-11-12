@@ -67,3 +67,53 @@ async def _fsub_open_cb(client, callback_query):
         await callback_query.answer("Invite link created.", show_alert=False)
     except Exception:
         await callback_query.answer("Unable to create invite. Ask channel admins.", show_alert=True)
+
+
+
+
+from pyrogram.types import Message
+from database.database import add_fsub_channel, remove_fsub_channel, get_fsub_channels
+from config import ADMINS
+
+# ------------------ ADMIN COMMANDS ------------------ #
+
+@Client.on_message(filters.command("addfsub") & filters.user(ADMINS))
+async def add_fsub_command(client, message: Message):
+    if len(message.command) != 2:
+        return await message.reply_text("Usage:\n<code>/addfsub -1001234567890</code>")
+    try:
+        channel_id = int(message.command[1])
+        success = await add_fsub_channel(channel_id)
+        if success:
+            await message.reply_text(f"✅ Channel <code>{channel_id}</code> added to Force Subscribe list.")
+        else:
+            await message.reply_text("⚠️ Channel already exists or failed to add.")
+    except Exception as e:
+        await message.reply_text(f"❌ Error: {e}")
+
+@Client.on_message(filters.command("delfsub") & filters.user(ADMINS))
+async def del_fsub_command(client, message: Message):
+    if len(message.command) != 2:
+        return await message.reply_text("Usage:\n<code>/delfsub -1001234567890</code>")
+    try:
+        channel_id = int(message.command[1])
+        success = await remove_fsub_channel(channel_id)
+        if success:
+            await message.reply_text(f"🗑️ Channel <code>{channel_id}</code> removed from Force Subscribe list.")
+        else:
+            await message.reply_text("⚠️ Channel not found or failed to remove.")
+    except Exception as e:
+        await message.reply_text(f"❌ Error: {e}")
+
+@Client.on_message(filters.command("listfsub") & filters.user(ADMINS))
+async def list_fsub_command(client, message: Message):
+    try:
+        channels = await get_fsub_channels()
+        if not channels:
+            return await message.reply_text("📭 No Force Subscribe channels found.")
+        msg = "<b>📋 Force Subscribe Channels:</b>\n\n"
+        for ch_id in channels:
+            msg += f"• <code>{ch_id}</code>\n"
+        await message.reply_text(msg, parse_mode="HTML")
+    except Exception as e:
+        await message.reply_text(f"❌ Error fetching list: {e}")
