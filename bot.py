@@ -1,13 +1,15 @@
-# bot.py
-# +++ Modified By [telegram username: @Codeflix_Bots] +++
-
+# +++ Modified By [telegram username: @Codeflix_Bots
 import asyncio
+import sys
 from datetime import datetime
 from pyrogram import Client
 from pyrogram.enums import ParseMode
 from config import API_HASH, APP_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, PORT, OWNER_ID
 from plugins import web_server
+import pyrogram.utils
 from aiohttp import web
+
+pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
 name = """
 Links Sharing Started
@@ -24,16 +26,13 @@ class Bot(Client):
             bot_token=TG_BOT_TOKEN,
         )
         self.LOGGER = LOGGER
-        self.uptime: datetime = None
-        self.username: str = None
 
     async def start(self, *args, **kwargs):
         await super().start()
         usr_bot_me = await self.get_me()
         self.uptime = datetime.now()
-        self.username = usr_bot_me.username
 
-        # Notify owner about bot restart
+        # Notify owner of bot restart
         try:
             await self.send_message(
                 chat_id=OWNER_ID,
@@ -41,23 +40,24 @@ class Bot(Client):
                 parse_mode=ParseMode.HTML
             )
         except Exception as e:
-            self.LOGGER(__name__).warning(f"Failed to notify owner ({OWNER_ID}): {e}")
+            self.LOGGER(__name__).warning(f"Failed to notify owner ({OWNER_ID}) of bot start: {e}")
 
         self.set_parse_mode(ParseMode.HTML)
-        self.LOGGER(__name__).info(f"Bot Running!\nCreated by: https://t.me/ProObito\n{name}")
+        self.LOGGER(__name__).info("Bot Running..!\n\nCreated by \nhttps://t.me/ProObito")
+        self.LOGGER(__name__).info(f"{name}")
+        self.username = usr_bot_me.username
 
-        # Start web server
+        # Web-response
         try:
-            app = await web_server()  # Make sure web_server() returns an aiohttp.web.Application
-            runner = web.AppRunner(app)
-            await runner.setup()
-            site = web.TCPSite(runner, "0.0.0.0", int(PORT))
-            await site.start()
-            self.LOGGER(__name__).info(f"Web server started on 0.0.0.0:{PORT}")
+            app = web.AppRunner(await web_server())
+            await app.setup()
+            bind_address = "0.0.0.0"
+            await web.TCPSite(app, bind_address, PORT).start()
+            self.LOGGER(__name__).info(f"Web server started on {bind_address}:{PORT}")
         except Exception as e:
             self.LOGGER(__name__).error(f"Failed to start web server: {e}")
 
-    async def stop(self, *args, **kwargs):
+    async def stop(self, *args):
         await super().stop()
         self.LOGGER(__name__).info("Bot stopped.")
 
