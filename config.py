@@ -11,7 +11,7 @@ API_HASH = os.environ.get("API_HASH", "7ccce409c7280e0153521df4458df7e3")
 
 # Main
 OWNER_ID = int(os.environ.get("OWNER_ID", "1029462448"))
-PORT = os.environ.get("PORT", "8080")
+PORT = os.environ.get("PORT", "8000")
 
 # Database
 DB_URI = os.environ.get("DB_URI", "mongodb+srv://wankedevishal:wXOMJisUbsooyUQI@cluster0.hdd0bbt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
