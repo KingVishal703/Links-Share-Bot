@@ -1,7 +1,6 @@
 # +++ Modified By [telegram username: @Codeflix_Bots
 
 import asyncio
-import sys
 from datetime import datetime
 
 from pyrogram import Client
@@ -12,7 +11,7 @@ from plugins import web_server
 import pyrogram.utils
 from aiohttp import web
 
-from database.database import db  # ✅ ADD THIS
+from database.database import db
 
 pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
@@ -35,9 +34,8 @@ class Bot(Client):
     async def start(self, *args, **kwargs):
         await super().start()
         usr_bot_me = await self.get_me()
-        self.uptime = datetime.now()
+        self.uptime = datetime.utcnow()
 
-        # Notify owner of bot restart
         try:
             await self.send_message(
                 chat_id=OWNER_ID,
@@ -45,85 +43,92 @@ class Bot(Client):
                 parse_mode=ParseMode.HTML
             )
         except Exception as e:
-            self.LOGGER(__name__).warning(f"Failed to notify owner ({OWNER_ID}) of bot start: {e}")
+            self.LOGGER(__name__).warning(f"Owner notify failed: {e}")
 
         self.set_parse_mode(ParseMode.HTML)
         self.LOGGER(__name__).info("Bot Running..!\n\nCreated by \nhttps://t.me/ProObito")
         self.LOGGER(__name__).info(f"{name}")
         self.username = usr_bot_me.username
 
-        # Web-response
+        # 🌐 Web Server
         try:
             app = web.AppRunner(await web_server())
             await app.setup()
-            bind_address = "0.0.0.0"
-            await web.TCPSite(app, bind_address, PORT).start()
-            self.LOGGER(__name__).info(f"Web server started on {bind_address}:{PORT}")
+            await web.TCPSite(app, "0.0.0.0", PORT).start()
+            self.LOGGER(__name__).info(f"Web server started on 0.0.0.0:{PORT}")
         except Exception as e:
-            self.LOGGER(__name__).error(f"Failed to start web server: {e}")
+            self.LOGGER(__name__).error(f"Web server error: {e}")
 
-        # 🔥 AUTO DELETE TASK START
+        # 🔥 AUTO DELETE START
         self.loop.create_task(self.ad_cleaner())
 
+    # 🔥 AUTO DELETE + VIEW TRACKER
     async def ad_cleaner(self):
-    while True:
-        try:
-            ads = await db.get_all_ads()
-            now = datetime.utcnow()
+        await asyncio.sleep(10)  # startup delay
 
-            for ad in ads:
-                try:
-                    end_time = ad.get("end_time")
+        while True:
+            try:
+                ads = await db.ads.find().to_list(None)
+                now = datetime.utcnow()
 
-                    # 🔥 FIX: ensure datetime
-                    if isinstance(end_time, str):
-                        from datetime import datetime
-                        end_time = datetime.fromisoformat(end_time)
+                for ad in ads:
+                    try:
+                        end_time = ad.get("end_time")
 
-                    if not end_time:
-                        continue
+                        # 🛠️ FIX: ensure datetime
+                        if isinstance(end_time, str):
+                            end_time = datetime.fromisoformat(end_time)
 
-                    # ⛔ DELETE
-                    if end_time <= now:
-                        print(f"Deleting Ad: {ad['message_id']}")
+                        if not isinstance(end_time, datetime):
+                            continue
 
-                        await self.delete_messages(
-                            ad["chat_id"],
-                            ad["message_id"]
-                        )
+                        # ⛔ DELETE
+                        if end_time <= now:
+                            try:
+                                await self.delete_messages(
+                                    chat_id=ad["chat_id"],
+                                    message_ids=ad["message_id"]
+                                )
+                            except Exception as e:
+                                print(f"Delete failed: {e}")
 
-                        await db.ads.delete_one({
-                            "message_id": ad["message_id"]
-                        })
+                            await db.ads.delete_one({
+                                "_id": ad["_id"]
+                            })
 
-                    # 👁 UPDATE VIEWS
-                    else:
-                        msg = await self.get_messages(
-                            ad["chat_id"],
-                            ad["message_id"]
-                        )
+                            print(f"✅ Deleted Ad: {ad['message_id']}")
 
-                        views = msg.views or 0
+                        # 👁 UPDATE VIEWS
+                        else:
+                            try:
+                                msg = await self.get_messages(
+                                    ad["chat_id"],
+                                    ad["message_id"]
+                                )
 
-                        await db.ads.update_one(
-                            {"message_id": ad["message_id"]},
-                            {"$set": {"views": views}}
-                        )
+                                views = msg.views or 0
 
-                except Exception as e:
-                    print(f"Cleaner error (channel {ad.get('chat_id')}): {e}")
+                                await db.ads.update_one(
+                                    {"_id": ad["_id"]},
+                                    {"$set": {"views": views}}
+                                )
+                            except:
+                                pass
 
-        except Exception as e:
-            print(f"Main Cleaner Error: {e}")
+                    except Exception as e:
+                        print(f"Ad error: {e}")
 
-        await asyncio.sleep(30)  # 🔥 faster check
+            except Exception as e:
+                print(f"Cleaner main error: {e}")
+
+            await asyncio.sleep(30)  # 🔥 faster check (30 sec)
 
     async def stop(self, *args):
         await super().stop()
         self.LOGGER(__name__).info("Bot stopped.")
 
 
-# Global cancel flag for broadcast
+# Global cancel flag
 is_canceled = False
 cancel_lock = asyncio.Lock()
 
