@@ -6,6 +6,8 @@ from database.database import db
 from config import OWNER_ID
 import pyromod.listen  # IMPORTANT
 
+print("🔥 ADS LOADED 🔥")
+
 # 🧠 Time parser
 def parse_time(time_str):
     try:
