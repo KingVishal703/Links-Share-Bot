@@ -142,7 +142,7 @@ async def test(client, message):
     await message.reply("✅ Ads plugin working")
 
 # 🧪 TEST COMMAND
-@Client.on_message(filters.command("test"))
+@Bot.on_message(filters.command("test"))
 async def test(client, message):
     await message.reply("✅ Ads plugin working")
         
