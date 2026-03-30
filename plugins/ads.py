@@ -3,6 +3,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from datetime import datetime, timedelta
 from database.database import db  # tumhare db ka import adjust kar lena
+from config import *
 
 ADS_CACHE = {}
 
