@@ -117,3 +117,8 @@ async def ads_report(client, message: Message):
 
     text += f"\n👁 Total Views: {total_views}"
     await message.reply(text)
+
+
+@Client.on_message(filters.command("test"))
+async def test(client, message):
+    await message.reply("Ads plugin working ✅")
