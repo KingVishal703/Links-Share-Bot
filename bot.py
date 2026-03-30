@@ -7,6 +7,7 @@ from pyrogram.enums import ParseMode
 from config import API_HASH, APP_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, PORT, OWNER_ID
 from plugins import web_server
 import pyrogram.utils
+import pyromod.listen
 from aiohttp import web
 from database.database import db  # ✅ IMPORTANT
 
