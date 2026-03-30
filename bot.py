@@ -8,6 +8,7 @@ from config import API_HASH, APP_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, PORT,
 from plugins import web_server
 import pyrogram.utils
 from aiohttp import web
+from database.database import db  # ✅ IMPORTANT
 
 pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
@@ -47,7 +48,7 @@ class Bot(Client):
         self.LOGGER(__name__).info(f"{name}")
         self.username = usr_bot_me.username
 
-        # Web-response
+        # 🌐 Web Server
         try:
             app = web.AppRunner(await web_server())
             await app.setup()
@@ -57,34 +58,35 @@ class Bot(Client):
         except Exception as e:
             self.LOGGER(__name__).error(f"Failed to start web server: {e}")
 
+        # 🔥 Start Ad Cleaner
+        self.loop.create_task(self.ad_cleaner())
 
-    async def ad_cleaner():
-    while True:
-        ads = await db.get_all_ads()
-        now = datetime.utcnow()
-
-        for ad in ads:
+    # 🔥 AUTO DELETE + VIEW TRACKER
+    async def ad_cleaner(self):
+        while True:
             try:
-                if ad["end_time"] <= now:
-                    await bot.delete_messages(ad["chat_id"], ad["message_id"])
-                    await db.ads.delete_one({"message_id": ad["message_id"]})
-                else:
-                    msg = await bot.get_messages(ad["chat_id"], ad["message_id"])
-                    views = msg.views or 0
-                    await db.ads.update_one(
-                        {"message_id": ad["message_id"]},
-                        {"$set": {"views": views}}
-                    )
-            except:
-                pass
+                ads = await db.get_all_ads()
+                now = datetime.utcnow()
 
-        await asyncio.sleep(60)
+                for ad in ads:
+                    try:
+                        if ad["end_time"] <= now:
+                            await self.delete_messages(ad["chat_id"], ad["message_id"])
+                            await db.ads.delete_one({"message_id": ad["message_id"]})
+                        else:
+                            msg = await self.get_messages(ad["chat_id"], ad["message_id"])
+                            views = msg.views or 0
+                            await db.ads.update_one(
+                                {"message_id": ad["message_id"]},
+                                {"$set": {"views": views}}
+                            )
+                    except Exception as e:
+                        print(f"Cleaner error (channel {ad.get('chat_id')}): {e}")
 
+            except Exception as e:
+                print(f"Main Cleaner Error: {e}")
 
-# bot start hone ke baad run karo
-bot.loop.create_task(ad_cleaner())
-
-
+            await asyncio.sleep(60)
 
     async def stop(self, *args):
         await super().stop()
