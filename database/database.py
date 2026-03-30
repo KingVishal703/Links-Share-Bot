@@ -344,3 +344,29 @@ async def is_approval_off(channel_id: int) -> bool:
     except Exception as e:
         print(f"Error checking approval_off for channel {channel_id}: {e}")
         return False
+
+
+# ADS COLLECTION
+
+async def add_ad(data):
+    await db.ads.insert_one(data)
+
+async def get_all_ads():
+    return await db.ads.find().to_list(None)
+
+
+# 🚫 Disabled Channels
+
+async def disable_channel(chat_id):
+    await db.disabled.update_one(
+        {"chat_id": chat_id},
+        {"$set": {"chat_id": chat_id}},
+        upsert=True
+    )
+
+async def enable_channel(chat_id):
+    await db.disabled.delete_one({"chat_id": chat_id})
+
+async def get_disabled_channels():
+    data = await db.disabled.find().to_list(None)
+    return [x["chat_id"] for x in data]
