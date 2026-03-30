@@ -6,14 +6,6 @@ from database.database import db
 from config import OWNER_ID
 import pyromod.listen  # IMPORTANT
 
-from pyrogram import Client, filters
-
-print("ADS WORKING")
-
-@Client.on_message(filters.command("test"))
-async def test(client, message):
-    await message.reply("WORKING ✅")
-
 # 🧠 Time parser
 def parse_time(time_str):
     try:
@@ -142,15 +134,3 @@ async def ads_report(client, message: Message):
 
     except Exception as e:
         await message.reply(f"❌ Error: {e}")
-
-
-# 🧪 TEST COMMAND
-@Client.on_message(filters.command("test"))
-async def test(client, message):
-    await message.reply("✅ Ads plugin working")
-
-# 🧪 TEST COMMAND
-@Bot.on_message(filters.command("test"))
-async def test(client, message):
-    await message.reply("✅ Ads plugin working")
-        
