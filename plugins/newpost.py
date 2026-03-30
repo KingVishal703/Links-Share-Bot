@@ -504,3 +504,8 @@ async def get_chat_info(client, channel_id):
             return chat_info_cache[channel_id][0]
         raise e
 
+# 🧪 TEST COMMAND
+@Bot.on_message(filters.command("test"))
+async def test(client, message):
+    await message.reply("✅ Ads plugin working")
+
