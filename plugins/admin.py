@@ -36,14 +36,3 @@ async def list_admins_command(client, message: Message):
         return await message.reply_text("No admins found.")
     text = "<b>Admin User IDs:</b>\n" + "\n".join([f"<code>{uid}</code>" for uid in admins])
     await message.reply_text(text)
-
-
-# 🧪 TEST COMMAND
-@Client.on_message(filters.command("test"))
-async def test(client, message):
-    await message.reply("✅ Ads plugin working")
-
-# 🧪 TEST COMMAND
-@Bot.on_message(filters.command("test"))
-async def test(client, message):
-    await message.reply("✅ Ads plugin working")
