@@ -9,7 +9,6 @@ from plugins import web_server
 import pyrogram.utils
 import pyromod.listen
 from aiohttp import web
-from database.database import db  # ✅ IMPORTANT
 
 pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
