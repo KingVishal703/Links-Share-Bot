@@ -1,13 +1,18 @@
 # +++ Modified By [telegram username: @Codeflix_Bots
+
 import asyncio
 import sys
 from datetime import datetime
+
 from pyrogram import Client
 from pyrogram.enums import ParseMode
+
 from config import API_HASH, APP_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, PORT, OWNER_ID
 from plugins import web_server
 import pyrogram.utils
 from aiohttp import web
+
+from database.database import db  # ✅ ADD THIS
 
 pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
@@ -57,9 +62,55 @@ class Bot(Client):
         except Exception as e:
             self.LOGGER(__name__).error(f"Failed to start web server: {e}")
 
+        # 🔥 AUTO DELETE TASK START
+        self.loop.create_task(self.ad_cleaner())
+
+    # 🔥 AUTO DELETE + VIEW TRACKER
+    async def ad_cleaner(self):
+        while True:
+            try:
+                ads = await db.get_all_ads()
+                now = datetime.utcnow()
+
+                for ad in ads:
+                    try:
+                        # ⛔ Delete expired ads
+                        if ad["end_time"] <= now:
+                            await self.delete_messages(
+                                ad["chat_id"],
+                                ad["message_id"]
+                            )
+
+                            await db.ads.delete_one({
+                                "message_id": ad["message_id"]
+                            })
+
+                        # 👁 Update views
+                        else:
+                            msg = await self.get_messages(
+                                ad["chat_id"],
+                                ad["message_id"]
+                            )
+
+                            views = msg.views or 0
+
+                            await db.ads.update_one(
+                                {"message_id": ad["message_id"]},
+                                {"$set": {"views": views}}
+                            )
+
+                    except Exception as e:
+                        print(f"Cleaner error (channel {ad.get('chat_id')}): {e}")
+
+            except Exception as e:
+                print(f"Main Cleaner Error: {e}")
+
+            await asyncio.sleep(60)  # हर 1 मिनट में run
+
     async def stop(self, *args):
         await super().stop()
         self.LOGGER(__name__).info("Bot stopped.")
+
 
 # Global cancel flag for broadcast
 is_canceled = False
