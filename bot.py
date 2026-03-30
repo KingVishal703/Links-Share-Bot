@@ -65,47 +65,58 @@ class Bot(Client):
         # 🔥 AUTO DELETE TASK START
         self.loop.create_task(self.ad_cleaner())
 
-    # 🔥 AUTO DELETE + VIEW TRACKER
     async def ad_cleaner(self):
-        while True:
-            try:
-                ads = await db.get_all_ads()
-                now = datetime.utcnow()
+    while True:
+        try:
+            ads = await db.get_all_ads()
+            now = datetime.utcnow()
 
-                for ad in ads:
-                    try:
-                        # ⛔ Delete expired ads
-                        if ad["end_time"] <= now:
-                            await self.delete_messages(
-                                ad["chat_id"],
-                                ad["message_id"]
-                            )
+            for ad in ads:
+                try:
+                    end_time = ad.get("end_time")
 
-                            await db.ads.delete_one({
-                                "message_id": ad["message_id"]
-                            })
+                    # 🔥 FIX: ensure datetime
+                    if isinstance(end_time, str):
+                        from datetime import datetime
+                        end_time = datetime.fromisoformat(end_time)
 
-                        # 👁 Update views
-                        else:
-                            msg = await self.get_messages(
-                                ad["chat_id"],
-                                ad["message_id"]
-                            )
+                    if not end_time:
+                        continue
 
-                            views = msg.views or 0
+                    # ⛔ DELETE
+                    if end_time <= now:
+                        print(f"Deleting Ad: {ad['message_id']}")
 
-                            await db.ads.update_one(
-                                {"message_id": ad["message_id"]},
-                                {"$set": {"views": views}}
-                            )
+                        await self.delete_messages(
+                            ad["chat_id"],
+                            ad["message_id"]
+                        )
 
-                    except Exception as e:
-                        print(f"Cleaner error (channel {ad.get('chat_id')}): {e}")
+                        await db.ads.delete_one({
+                            "message_id": ad["message_id"]
+                        })
 
-            except Exception as e:
-                print(f"Main Cleaner Error: {e}")
+                    # 👁 UPDATE VIEWS
+                    else:
+                        msg = await self.get_messages(
+                            ad["chat_id"],
+                            ad["message_id"]
+                        )
 
-            await asyncio.sleep(60)  # हर 1 मिनट में run
+                        views = msg.views or 0
+
+                        await db.ads.update_one(
+                            {"message_id": ad["message_id"]},
+                            {"$set": {"views": views}}
+                        )
+
+                except Exception as e:
+                    print(f"Cleaner error (channel {ad.get('chat_id')}): {e}")
+
+        except Exception as e:
+            print(f"Main Cleaner Error: {e}")
+
+        await asyncio.sleep(30)  # 🔥 faster check
 
     async def stop(self, *args):
         await super().stop()
