@@ -7,6 +7,7 @@ from typing import List, Optional
 
 dbclient = motor.motor_asyncio.AsyncIOMotorClient(DB_URI)
 database = dbclient[DB_NAME]
+db = database
 
 # collections
 user_data = database['users']
