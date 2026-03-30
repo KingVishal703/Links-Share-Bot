@@ -1,21 +1,29 @@
 # +++ Modified By [telegram username: @Codeflix_Bots
+
 import asyncio
-import sys
 from datetime import datetime
+
 import pyromod.listen
+from pyromod.listen import ListenerTypes
+
 from pyrogram import Client
 from pyrogram.enums import ParseMode
+
 from config import API_HASH, APP_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, PORT, OWNER_ID
 from plugins import web_server
+
 import pyrogram.utils
 from aiohttp import web
-from database.database import db
+
+# database functions (clean import)
+from database.database import get_all_ads, db
 
 pyrogram.utils.MIN_CHANNEL_ID = -1009147483647
 
 name = """
 Links Sharing Started
 """
+
 
 class Bot(Client):
     def __init__(self):
@@ -27,14 +35,22 @@ class Bot(Client):
             workers=TG_BOT_WORKERS,
             bot_token=TG_BOT_TOKEN,
         )
+
         self.LOGGER = LOGGER
+
+        # 🔥 FIX: Initialize Pyromod listeners
+        self.listeners = {
+            ListenerTypes.MESSAGE: [],
+            ListenerTypes.CALLBACK_QUERY: []
+        }
 
     async def start(self, *args, **kwargs):
         await super().start()
+
         usr_bot_me = await self.get_me()
         self.uptime = datetime.now()
 
-        # Notify owner of bot restart
+        # Notify owner
         try:
             await self.send_message(
                 chat_id=OWNER_ID,
@@ -42,11 +58,12 @@ class Bot(Client):
                 parse_mode=ParseMode.HTML
             )
         except Exception as e:
-            self.LOGGER(__name__).warning(f"Failed to notify owner ({OWNER_ID}) of bot start: {e}")
+            self.LOGGER(__name__).warning(f"Owner notify failed: {e}")
 
         self.set_parse_mode(ParseMode.HTML)
         self.LOGGER(__name__).info("Bot Running..!\n\nCreated by \nhttps://t.me/ProObito")
         self.LOGGER(__name__).info(f"{name}")
+
         self.username = usr_bot_me.username
 
         # 🌐 Web Server
@@ -55,9 +72,10 @@ class Bot(Client):
             await app.setup()
             bind_address = "0.0.0.0"
             await web.TCPSite(app, bind_address, PORT).start()
+
             self.LOGGER(__name__).info(f"Web server started on {bind_address}:{PORT}")
         except Exception as e:
-            self.LOGGER(__name__).error(f"Failed to start web server: {e}")
+            self.LOGGER(__name__).error(f"Web server error: {e}")
 
         # 🔥 Start Ad Cleaner
         self.loop.create_task(self.ad_cleaner())
@@ -66,23 +84,25 @@ class Bot(Client):
     async def ad_cleaner(self):
         while True:
             try:
-                ads = await db.get_all_ads()
+                ads = await get_all_ads()
                 now = datetime.utcnow()
 
                 for ad in ads:
                     try:
-                        if ad["end_time"] <= now:
+                        if ad.get("end_time") and ad["end_time"] <= now:
                             await self.delete_messages(ad["chat_id"], ad["message_id"])
                             await db.ads.delete_one({"message_id": ad["message_id"]})
                         else:
                             msg = await self.get_messages(ad["chat_id"], ad["message_id"])
                             views = msg.views or 0
+
                             await db.ads.update_one(
                                 {"message_id": ad["message_id"]},
                                 {"$set": {"views": views}}
                             )
+
                     except Exception as e:
-                        print(f"Cleaner error (channel {ad.get('chat_id')}): {e}")
+                        print(f"Cleaner error (chat {ad.get('chat_id')}): {e}")
 
             except Exception as e:
                 print(f"Main Cleaner Error: {e}")
@@ -93,9 +113,11 @@ class Bot(Client):
         await super().stop()
         self.LOGGER(__name__).info("Bot stopped.")
 
-# Global cancel flag for broadcast
+
+# Global cancel flag
 is_canceled = False
 cancel_lock = asyncio.Lock()
+
 
 if __name__ == "__main__":
     Bot().run()
