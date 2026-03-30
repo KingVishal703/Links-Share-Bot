@@ -22,15 +22,25 @@ async def adsend(client, message: Message):
     args = message.text.split()
 
     if len(args) < 2:
-        return await message.reply("Usage: /adsend 10m")
+        return await message.reply(
+            "⚠️ <b>Invalid Usage</b>\n\n"
+            "📌 <b>Format:</b> <code>/adsend 10m</code>\n"
+            "⏳ Example: 10m / 2h / 1d"
+        )
 
     duration = parse_time(args[1])
     if not duration:
-        return await message.reply("Invalid time format")
+        return await message.reply(
+            "❌ <b>Invalid Time Format</b>\n\n"
+            "Use: <code>10m</code>, <code>2h</code>, <code>1d</code>"
+        )
 
     end_time = datetime.utcnow() + duration
 
-    await message.reply("📢 Send your ad message")
+    await message.reply(
+        "📢 <b>Send Your Advertisement Message</b>\n\n"
+        "⏳ Waiting for your content..."
+    )
 
     ad_msg: Message = await client.listen(message.chat.id)
 
@@ -39,6 +49,9 @@ async def adsend(client, message: Message):
     disabled_ids = [x["chat_id"] for x in disabled]
 
     success = 0
+    failed = 0
+
+    status_msg = await message.reply("🚀 <b>Sending Ads...</b>")
 
     for ch in channels:
         chat_id = ch.get("channel_id")
@@ -57,10 +70,18 @@ async def adsend(client, message: Message):
             })
 
             success += 1
+
         except Exception as e:
             print(f"Error in {chat_id}: {e}")
+            failed += 1
 
-    await message.reply(f"✅ Ad sent in {success} channels")
+    await status_msg.edit(
+        "✅ <b>Advertisement Broadcast Completed</b>\n\n"
+        f"📡 <b>Total Channels:</b> {len(channels)}\n"
+        f"✔️ <b>Success:</b> {success}\n"
+        f"❌ <b>Failed:</b> {failed}\n"
+        f"⏳ <b>Duration:</b> {args[1]}"
+    )
 
 
 # 🚫 OFF
@@ -68,10 +89,17 @@ async def adsend(client, message: Message):
 async def adsoff(client, message: Message):
     try:
         chat_id = int(message.text.split()[1])
+
         await db.disabled.insert_one({"chat_id": chat_id})
-        await message.reply("🚫 Ads OFF")
+
+        await message.reply(
+            "🚫 <b>Ads Disabled</b>\n\n"
+            f"📍 Channel: <code>{chat_id}</code>"
+        )
     except:
-        await message.reply("Usage: /adsoff -100xxx")
+        await message.reply(
+            "⚠️ <b>Usage:</b> <code>/adsoff -100xxxx</code>"
+        )
 
 
 # ✅ ON
@@ -79,10 +107,17 @@ async def adsoff(client, message: Message):
 async def adson(client, message: Message):
     try:
         chat_id = int(message.text.split()[1])
+
         await db.disabled.delete_one({"chat_id": chat_id})
-        await message.reply("✅ Ads ON")
+
+        await message.reply(
+            "✅ <b>Ads Enabled</b>\n\n"
+            f"📍 Channel: <code>{chat_id}</code>"
+        )
     except:
-        await message.reply("Usage: /adson -100xxx")
+        await message.reply(
+            "⚠️ <b>Usage:</b> <code>/adson -100xxxx</code>"
+        )
 
 
 # 📊 REPORT
@@ -91,7 +126,9 @@ async def report(client, message: Message):
     ads = await db.ads.find().to_list(None)
 
     total = 0
-    text = "📊 Report:\n\n"
+
+    text = "📊 <b>Advertisement Analytics Report</b>\n"
+    text += "━━━━━━━━━━━━━━━━━━━\n\n"
 
     for ad in ads:
         try:
@@ -99,15 +136,23 @@ async def report(client, message: Message):
             views = msg.views or 0
             total += views
 
-            text += f"{ad['chat_id']} → {views}\n"
+            text += (
+                f"📍 <code>{ad['chat_id']}</code>\n"
+                f"👁 Views: <b>{views}</b>\n\n"
+            )
         except:
             pass
 
-    text += f"\n👁 Total: {total}"
+    text += "━━━━━━━━━━━━━━━━━━━\n"
+    text += f"🔥 <b>Total Views:</b> {total}"
+
     await message.reply(text)
 
 
 # TEST
 @Client.on_message(filters.command("test"))
 async def test(client, message):
-    await message.reply("Ads working ✅")
+    await message.reply(
+        "✅ <b>Ads System Working Perfectly</b>\n\n"
+        "🚀 Ready for broadcasting!"
+    )
