@@ -57,6 +57,35 @@ class Bot(Client):
         except Exception as e:
             self.LOGGER(__name__).error(f"Failed to start web server: {e}")
 
+
+    async def ad_cleaner():
+    while True:
+        ads = await db.get_all_ads()
+        now = datetime.utcnow()
+
+        for ad in ads:
+            try:
+                if ad["end_time"] <= now:
+                    await bot.delete_messages(ad["chat_id"], ad["message_id"])
+                    await db.ads.delete_one({"message_id": ad["message_id"]})
+                else:
+                    msg = await bot.get_messages(ad["chat_id"], ad["message_id"])
+                    views = msg.views or 0
+                    await db.ads.update_one(
+                        {"message_id": ad["message_id"]},
+                        {"$set": {"views": views}}
+                    )
+            except:
+                pass
+
+        await asyncio.sleep(60)
+
+
+# bot start hone ke baad run karo
+bot.loop.create_task(ad_cleaner())
+
+
+
     async def stop(self, *args):
         await super().stop()
         self.LOGGER(__name__).info("Bot stopped.")
