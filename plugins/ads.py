@@ -5,6 +5,10 @@ from datetime import datetime, timedelta
 from database.database import db
 from config import OWNER_ID
 
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+user_selection = {}
+
 # 🧠 Time parser
 def parse_time(time_str):
     if time_str.endswith("m"):
@@ -156,3 +160,143 @@ async def test(client, message):
         "✅ <b>Ads System Working Perfectly</b>\n\n"
         "🚀 Ready for broadcasting!"
     )
+
+
+# 🗑 DELETE ALL ADS
+@Client.on_message(filters.command("adsdelete") & filters.user(OWNER_ID))
+async def adsdelete(client, message: Message):
+    ads = await db.ads.find().to_list(None)
+
+    deleted = 0
+    failed = 0
+
+    status = await message.reply("🗑 <b>Deleting Ads...</b>")
+
+    for ad in ads:
+        try:
+            await client.delete_messages(
+                ad["chat_id"],
+                ad["message_id"]
+            )
+            deleted += 1
+        except Exception as e:
+            print(f"Delete error {ad['chat_id']}: {e}")
+            failed += 1
+
+    # optional: clear DB
+    await db.ads.delete_many({})
+
+    await status.edit(
+        "✅ <b>Ads Deleted</b>\n\n"
+        f"🗑 Deleted: {deleted}\n"
+        f"❌ Failed: {failed}"
+    )
+
+
+
+# 🎯 START SELECT
+@Client.on_message(filters.command("adsend_select") & filters.user(OWNER_ID))
+async def adsend_select(client, message: Message):
+    args = message.text.split()
+
+    if len(args) < 2:
+        return await message.reply("Usage: /adsend_select 10m")
+
+    duration = parse_time(args[1])
+    if not duration:
+        return await message.reply("Invalid time format!")
+
+    channels = await db.channels.find().to_list(None)
+
+    buttons = []
+    for ch in channels:
+        chat_id = ch["channel_id"]
+        buttons.append(
+            [InlineKeyboardButton(f"❌ {chat_id}", callback_data=f"select_{chat_id}")]
+        )
+
+    buttons.append([InlineKeyboardButton("✅ DONE", callback_data="done_select")])
+
+    user_selection[message.from_user.id] = {
+        "channels": [],
+        "duration": duration
+    }
+
+    await message.reply(
+        "🎯 <b>Select Channels:</b>",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
+
+
+# 🔘 BUTTON HANDLER
+@Client.on_callback_query(filters.regex("^select_"))
+async def select_channel(client, query):
+    user_id = query.from_user.id
+    chat_id = int(query.data.split("_")[1])
+
+    data = user_selection.get(user_id)
+
+    if not data:
+        return await query.answer("Session expired!", show_alert=True)
+
+    if chat_id in data["channels"]:
+        data["channels"].remove(chat_id)
+        text = f"❌ {chat_id}"
+    else:
+        data["channels"].append(chat_id)
+        text = f"✅ {chat_id}"
+
+    await query.answer("Toggled")
+    await query.message.edit_reply_markup(
+        InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton(
+                    f"{'✅' if int(btn.callback_data.split('_')[1]) in data['channels'] else '❌'} {btn.callback_data.split('_')[1]}",
+                    callback_data=btn.callback_data
+                )
+            ]
+            for row in query.message.reply_markup.inline_keyboard[:-1]
+            for btn in row
+        ] + [[InlineKeyboardButton("✅ DONE", callback_data="done_select")]])
+    )
+
+
+# ✅ DONE
+@Client.on_callback_query(filters.regex("done_select"))
+async def done_select(client, query):
+    user_id = query.from_user.id
+    data = user_selection.get(user_id)
+
+    if not data or not data["channels"]:
+        return await query.answer("No channels selected!", show_alert=True)
+
+    await query.message.reply("📢 Send your ad message now...")
+
+    ad_msg: Message = await client.listen(query.message.chat.id)
+
+    success = 0
+    failed = 0
+
+    for chat_id in data["channels"]:
+        try:
+            sent = await ad_msg.copy(chat_id)
+
+            await db.ads.insert_one({
+                "chat_id": chat_id,
+                "message_id": sent.id,
+                "end_time": datetime.utcnow() + data["duration"],
+                "views": 0
+            })
+
+            success += 1
+        except Exception as e:
+            print(e)
+            failed += 1
+
+    await query.message.reply(
+        "✅ <b>Ads Sent</b>\n\n"
+        f"✔️ Success: {success}\n"
+        f"❌ Failed: {failed}"
+    )
+
+    user_selection.pop(user_id, None)
