@@ -6,10 +6,15 @@ from datetime import datetime
 from pyrogram import Client
 from pyrogram.enums import ParseMode
 
-from config import API_HASH, APP_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, PORT, OWNER_ID
+from config import API_HASH, APP_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, MEMBERSHIP_CHANNEL, PORT, OWNER_ID
 from plugins import web_server
 import pyrogram.utils
 from aiohttp import web
+
+from database.database import (
+    get_expired_memberships,
+    delete_membership
+)
 
 from database.database import db
 
@@ -61,6 +66,49 @@ class Bot(Client):
 
         # 🔥 AUTO DELETE START
         self.loop.create_task(self.ad_cleaner())
+        self.loop.create_task(
+            self.membership_cleaner()
+        )
+
+    async def membership_cleaner(self):
+
+        await asyncio.sleep(10)
+
+        while True:
+
+            try:
+
+                expired = await get_expired_memberships()
+
+                for member in expired:
+
+                    user_id = member["user_id"]
+
+                    try:
+
+                        await self.ban_chat_member(
+                            MEMBERSHIP_CHANNEL,
+                            user_id
+                        )
+
+                        await self.unban_chat_member(
+                            MEMBERSHIP_CHANNEL,
+                            user_id
+                        )
+
+                        await delete_membership(user_id)
+
+                        print(
+                            f"Removed {user_id}"
+                        )
+
+                    except Exception as e:
+                        print(e)
+
+            except Exception as e:
+                print(e)
+
+            await asyncio.sleep(300)
 
     # 🔥 AUTO DELETE + VIEW TRACKER
     async def ad_cleaner(self):
