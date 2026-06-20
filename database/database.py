@@ -8,6 +8,7 @@ from typing import List, Optional
 dbclient = motor.motor_asyncio.AsyncIOMotorClient(DB_URI)
 database = dbclient[DB_NAME]
 db = database
+memberships = database["memberships"]
 
 # collections
 user_data = database['users']
@@ -371,3 +372,30 @@ async def enable_channel(chat_id):
 async def get_disabled_channels():
     data = await db.disabled.find().to_list(None)
     return [x["chat_id"] for x in data]
+
+
+
+
+async def add_membership(user_id, days):
+    expire_at = datetime.utcnow() + timedelta(days=int(days))
+
+    await memberships.update_one(
+        {"user_id": user_id},
+        {
+            "$set": {
+                "user_id": user_id,
+                "expire_at": expire_at
+            }
+        },
+        upsert=True
+    )
+
+async def get_expired_memberships():
+    return await memberships.find({
+        "expire_at": {"$lte": datetime.utcnow()}
+    }).to_list(None)
+
+async def delete_membership(user_id):
+    await memberships.delete_one(
+        {"user_id": user_id}
+    )
