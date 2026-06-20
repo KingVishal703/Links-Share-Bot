@@ -24,6 +24,11 @@ APPROVED = environ.get("APPROVED_WELCOME", "on").lower()
 
 # Default
 TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS", "40"))
+
+MEMBERSHIP_CHANNEL = int(os.environ.get(
+    "MEMBERSHIP_CHANNEL",
+    "-1003980525291"
+))
 #--- ---- ---- --- --- --- - -- -  - - - - - - - - - - - --  - -
 
 # Start pic
